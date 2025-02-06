@@ -20,6 +20,14 @@ The algorithm employs a proximal gradient descent strategy:
 3. **L1 Proximal Step:** Apply soft-thresholding to promote individual sparsity.
 4. **Parameter Updates:** Refresh the intercept and scaling factor after each iteration.
 
+## Benchmark Results
+
+Below is the benchmark comparing CPU and GPU performance. As shown, the GPU demonstrates faster execution in 500 iterations with fit_intercept activated.
+
+![GPU vs CPU Benchmark](figures/benchmark.png "Benchmark showing GPU is faster")
+
+*Note: Benchmark run on an NVIDIA T4 GPU.*
+
 ## Getting Started
 
 1. Create the environment using `environment.yml`.
