@@ -1,11 +1,11 @@
-# implementing a group lasso algorithm with sparsity ussing pytorch
+# Implementing a group lasso algorithm with sparsity ussing pytorch
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.cuda.amp
 import torch.jit
-import time  # added for timing
+import time 
 
 from typing import List, Tuple, Union
 
@@ -246,7 +246,8 @@ class GroupLasso(nn.Module):
             for iteration in range(self.max_iter):
                 iter_start = time.time()
                 if use_amp:
-                    with torch.amp.autocast():  # updated autocast usage
+                    # Updated autocast usage with required device_type argument.
+                    with torch.amp.autocast(device_type=self.device.type, enabled=use_amp):
                         predictions = normalized_features @ self.coefficients_
                         predictions = predictions + self.intercept_
                         predictions *= torch.clamp(self.scaling_, min=1e-8, max=1e8)
@@ -254,6 +255,7 @@ class GroupLasso(nn.Module):
                         gradient = -2 * self.scaling_ * normalized_features.T @ residuals / n_samples
                         gradient = torch.clamp(gradient, min=-1e8, max=1e8)
                 else:
+                    # ...existing code...
                     predictions = normalized_features @ self.coefficients_
                     predictions = predictions + self.intercept_
                     predictions *= torch.clamp(self.scaling_, min=1e-8, max=1e8)
@@ -261,9 +263,15 @@ class GroupLasso(nn.Module):
                     gradient = -2 * self.scaling_ * normalized_features.T @ residuals / n_samples
                     gradient = torch.clamp(gradient, min=-1e8, max=1e8)
                 
+                # NEW: Sanitize the gradient to avoid NaN or infinite values.
+                gradient = torch.nan_to_num(gradient, nan=0.0, posinf=1e10, neginf=-1e10)
+                
                 # Gradient descent step
                 self.coefficients_ = self.coefficients_ - step_size * gradient
 
+                # NEW: Sanitize coefficients after update.
+                self.coefficients_ = torch.nan_to_num(self.coefficients_, nan=0.0, posinf=1e10, neginf=-1e10)
+                
                 # Replace Python for-loop with TorchScript function
                 self.coefficients_ = apply_group_lasso(self.coefficients_, self.groups, self.group_reg, step_size)
 
@@ -272,6 +280,9 @@ class GroupLasso(nn.Module):
                     torch.abs(self.coefficients_) - self.l1_reg * step_size,
                     torch.tensor(0.0, device=self.device)
                 )
+
+                # NEW: Clip coefficients to prevent divergence and avoid infinite values.
+                self.coefficients_ = torch.clamp(self.coefficients_, min=-1e10, max=1e10)
 
                 # Update intercept if needed
                 if self.fit_intercept:
@@ -350,4 +361,3 @@ class GroupLasso(nn.Module):
             
         predictions = self.predict(features)
         return torch.mean((target - predictions) ** 2).item()
-
