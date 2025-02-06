@@ -1,0 +1,11 @@
+
+name: torch_group_lasso
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  - pytorch>=1.9
+  - torchvision
+  - cudatoolkit=10.2  # Remove or adjust if using CPU-only
