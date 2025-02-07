@@ -255,7 +255,6 @@ class GroupLasso(nn.Module):
                         gradient = -2 * self.scaling_ * normalized_features.T @ residuals / n_samples
                         gradient = torch.clamp(gradient, min=-1e8, max=1e8)
                 else:
-                    # ...existing code...
                     predictions = normalized_features @ self.coefficients_
                     predictions = predictions + self.intercept_
                     predictions *= torch.clamp(self.scaling_, min=1e-8, max=1e8)
